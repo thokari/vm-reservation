@@ -1,4 +1,4 @@
-var app = angular.module('vm-reservation', ['ngRoute', 'ngResource', 'ui.bootstrap'])
+var app = angular.module('vm-reservation', ['ngRoute', 'ngResource', 'ngCookies', 'ui.bootstrap'])
 
 app.constant('config', {
     // endpoint: 'http://localhost:3000/'
@@ -76,20 +76,28 @@ app.controller('vmListController', function(config, $scope, $http, $modal) {
     })
 })
 
-app.controller('editVMController', function($scope, $modalInstance, selectedVM) {
+app.controller('editVMController', function($scope, $modalInstance, selectedVM, $cookies) {
 
     $scope.vm = {
         id: selectedVM.id,
         host: selectedVM.host,
         status: selectedVM.status,
         description: selectedVM.description,
-        contact: selectedVM.contact,
+        contact: selectedVM.contact || $cookies.get('defaultContact'),
         systeminfo: selectedVM.systeminfo,
         ansible_facts: selectedVM.ansible_facts
     }
 
+    $scope.changeStatus = function() {
+        if ($scope.vm.status == 'free') {
+            $scope.vm.description = ''
+            $scope.vm.contact = ''
+            $modalInstance.close($scope.vm)
+        }
+    }
+
     $scope.save = function() {
-        $scope.selectedVM
+        $cookies.put('defaultContact', $scope.vm.contact)
         $modalInstance.close($scope.vm)
     }
 

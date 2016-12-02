@@ -1,9 +1,10 @@
 {
   "name": "vm-reservation",
   "dependencies": {
-    "angular": "1.3.15",
-    "angular-route": "1.3.15",
-    "angular-resource": "1.3.15",
+    "angular": "1.5.9",
+    "angular-route": "1.5.9",
+    "angular-resource": "1.5.9",
+    "angular-cookies": "^1.5.9",
     "bootstrap": "3.3.4",
     "jquery": "2.1.4",
     "angular-bootstrap": "~0.13.0"

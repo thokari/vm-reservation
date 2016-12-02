@@ -11,7 +11,7 @@ src: http://stackoverflow.com/questions/22055700/how-to-inject-modalinstance-ins
 </style>
 
 <center>
-    <h3>book your VM!</h3>
+    <h3>Book your VM!</h3>
     <hr>
     <table style="width:400px">
         <tr>
@@ -21,7 +21,7 @@ src: http://stackoverflow.com/questions/22055700/how-to-inject-modalinstance-ins
         <tr>
             <td>Status</td>
             <td>
-                <select name="top5" class="form-control" ng-model="vm.status" size="1">
+                <select name="top5" class="form-control" ng-model="vm.status" size="1" ng-change="changeStatus()">
                     <option>free</option>
                     <option>in use</option>
                     <option>out of order</option>
@@ -35,10 +35,6 @@ src: http://stackoverflow.com/questions/22055700/how-to-inject-modalinstance-ins
         <tr>
             <td>Contact</td>
             <td><input type="text" class="form-control" ng-model="vm.contact" /></td>
-        </tr>
-        <tr>
-            <td>Installation Info</td>
-            <td><input type="text" class="form-control" ng-model="vm.systeminfo" /></td>
         </tr>
     </table>
     <br>
