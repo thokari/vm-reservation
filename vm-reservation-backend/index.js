@@ -111,8 +111,8 @@ server.put('/vms', function(req, res, next) {
     if (payload) {
         var systeminfo = {
             epages_version: payload['epages_version'],
-            epagesj_version: payload['epagesj_version'],
-            unity_version: payload['unity_version']
+            epages_j_version: payload['epages_j_version'],
+            epages_unity_version: payload['epages_unity_version']
         }
         var host = payload['ansible_fqdn']
         var factsAsString = JSON.stringify(payload)
