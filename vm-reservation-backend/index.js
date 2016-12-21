@@ -109,13 +109,13 @@ server.put('/vms/:id', function(req, res, next) {
 server.put('/vms', function(req, res, next) {
     var payload = req.body
     if (payload) {
-        var ansibleFacts = payload['ansible_facts']
         var systeminfo = {
-          epages_version: payload['epages_version'],
-          epagesj_version: payload['epagesj_version']
+            epages_version: payload['epages_version'],
+            epagesj_version: payload['epagesj_version'],
+            unity_version: payload['unity_version']
         }
-        var host = ansibleFacts['ansible_fqdn']
-        var factsAsString = JSON.stringify(ansibleFacts)
+        var host = payload['ansible_fqdn']
+        var factsAsString = JSON.stringify(payload)
         var systeminfoAsString = JSON.stringify(systeminfo)
         var updateStmt = db.prepare('UPDATE vms SET ansible_facts=(?), systeminfo=(?) WHERE host=(?)')
         updateStmt.run(factsAsString, systeminfoAsString, host, function(err) {
