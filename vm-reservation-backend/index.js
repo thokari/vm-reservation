@@ -62,13 +62,13 @@ server.get('/vms', function(req, res, next) {
             if (err) {
                 console.log('Database error: ' + err)
                 res.status(500)
-                res.json({error: err})
+                res.json({message: err})
             }
             vms.push(parseDatabaseRow(row))
         }, function(err, numRows) {
             if (err) {
                 res.status(500)
-                res.json({error: err})
+                res.json({message: err})
             }
             res.json({
                 vms: vms
@@ -162,7 +162,15 @@ server.post({
             promDb.getAsync("SELECT id, host FROM vms WHERE status == 'free'").then(function(vm) {
                 if (vm) {
                     console.log('Booking VM ' + vm.host + '.')
-                    promDb.runAsync("UPDATE vms SET status='in use', contact=(?) WHERE id=(?)", req.body.contact, vm.id).then(function() {
+                    var payload = req.body
+                    var params = [
+                        'in use',
+                        payload.contact,
+                        new Date().toISOString(),
+                        payload.description,
+                        vm.id
+                    ]
+                    promDb.runAsync("UPDATE vms SET status=(?), contact=(?), bookingtime=(?), description=(?) WHERE id=(?)", params).then(function() {
                         res.send(201, {
                             id: vm.id,
                             host: vm.host,
@@ -172,7 +180,7 @@ server.post({
                 } else {
                     var msg = 'All VMs are booked!'
                     console.error(msg)
-                    res.send(423, { error: msg })
+                    res.send(423, { message: msg })
                 }
             })
         })
