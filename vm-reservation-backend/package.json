@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "bluebird": "^3.4.7",
     "db-migrate": "^0.9.26",
     "fs": "0.0.2",
+    "node-restify-validation": "^1.0.5",
     "restify": "^3.0.2",
     "sqlite3": "^3.0.8"
   }

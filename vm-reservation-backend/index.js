@@ -1,6 +1,8 @@
 var fs = require('fs')
 var sqlite3 = require('sqlite3').verbose()
 var restify = require('restify')
+var Promise = require('bluebird')
+var restifyValidation = require('node-restify-validation')
 
 var file = 'vms.db'
 var db = new sqlite3.Database(file)
@@ -11,6 +13,13 @@ server.use(restify.bodyParser({
     mapParams: true
 }))
 server.use(restify.queryParser())
+server.use(restifyValidation.validationPlugin({
+    // Shows errors as an array
+    errorsAsArray: true,
+    // Not exclude incoming variables not specified in validator rules
+    forbidUndefinedVariables: false,
+    errorHandler: restify.errors.InvalidArgumentError
+}))
 
 server.use(
     function crossOrigin(req, res, next) {
@@ -52,6 +61,8 @@ server.get('/vms', function(req, res, next) {
         db.each('SELECT * FROM vms', function(err, row) {
             if (err) {
                 console.log('Database error: ' + err)
+                res.status(500)
+                res.json({error: err})
             }
             vms.push(parseDatabaseRow(row))
         }, function(err, numRows) {
@@ -103,6 +114,9 @@ server.put('/vms/:id', function(req, res, next) {
                 res.end()
             })
         }
+    } else {
+        res.status(400)
+        res.end()
     }
 })
 
@@ -127,8 +141,43 @@ server.put('/vms', function(req, res, next) {
             }
             res.end()
         })
+    } else {
+        res.status(400)
+        res.end()
     }
 })
+
+var promDb = Promise.promisifyAll(db)
+
+server.post({
+    url: '/vms/reservation',
+    validation: {
+        content: {
+            contact: {
+                isRequired: true
+            }
+        }
+    }}, function(req, res, next) {
+        db.serialize(function() {
+            promDb.getAsync("SELECT id, host FROM vms WHERE status == 'free'").then(function(vm) {
+                if (vm) {
+                    console.log('Booking VM ' + vm.host + '.')
+                    promDb.runAsync("UPDATE vms SET status='in use', contact=(?) WHERE id=(?)", req.body.contact, vm.id).then(function() {
+                        res.send(201, {
+                            id: vm.id,
+                            host: vm.host,
+                            status: 'in use'
+                        })
+                    })
+                } else {
+                    var msg = 'All VMs are booked!'
+                    console.error(msg)
+                    res.send(423, { error: msg })
+                }
+            })
+        })
+    }
+)
 
 var port = 3000
 server.listen(port, function(err) {
