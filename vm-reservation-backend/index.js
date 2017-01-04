@@ -201,9 +201,8 @@ server.del({
             }).catch(function(err) {
                 var msg = 'Error when releasing VM reservation for ' + req.params.host + ': ' + err
                 console.error(msg)
-                res.send(500, { message: msg }))
+                res.send(500, { message: msg })
             })
-        })
     }
 )
 
