@@ -14,9 +14,7 @@ server.use(restify.bodyParser({
 }))
 server.use(restify.queryParser())
 server.use(restifyValidation.validationPlugin({
-    // Shows errors as an array
     errorsAsArray: true,
-    // Not exclude incoming variables not specified in validator rules
     forbidUndefinedVariables: false,
     errorHandler: restify.errors.InvalidArgumentError
 }))
@@ -182,6 +180,28 @@ server.post({
                     console.error(msg)
                     res.send(423, { message: msg })
                 }
+            })
+        })
+    }
+)
+
+server.del({
+    url: '/vms/:host/reservation',
+    validation: {
+        resources: {
+            host: { isRequired: true }
+        },
+    }}, function(req, res, next) {
+        promDb.runAsync("UPDATE vms SET status='free', contact='', bookingtime='', description='' WHERE host=(?)", req.params.host)
+            .then(function() {
+                res.send(200, {
+                    host: req.params.host,
+                    status: 'free'
+                })
+            }).catch(function(err) {
+                var msg = 'Error when releasing VM reservation for ' + req.params.host + ': ' + err
+                console.error(msg)
+                res.send(500, { message: msg }))
             })
         })
     }
