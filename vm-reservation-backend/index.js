@@ -183,13 +183,12 @@ server.post({
     }}, function(req, res, next) {
         db.serialize(function() {
             var payload = req.body
-            console.log(payload)
-            var query = "SELECT id, host FROM vms WHERE status == 'free'";
-            if (payload.requireExternal) {
+            var findQuery = "SELECT id, host FROM vms WHERE status == 'free'";
+            if (payload.requireExternal == 'true') {
                 console.log('Received request for external VM')
-                query += "AND substr(host, -7, 7) = 'systems'"
+                findQuery += "AND substr(host, -7, 7) = 'systems'"
             }
-            promDb.getAsync(query).then(function(vm) {
+            promDb.getAsync(findQuery).then(function(vm) {
                 if (vm) {
                     console.log('Booking VM ' + vm.host + '.')
 
