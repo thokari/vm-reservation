@@ -75,6 +75,23 @@ server.get('/vms', function(req, res, next) {
     })
 })
 
+server.post('/vms', function(req, res, next) {
+    // TODO validation...
+    var vms = req.body
+    console.log(vms)
+    var promises = []
+    for (index in vms) {
+        var params = [ vms[index].host, vms[index].status ]
+        console.log(params)
+        promises.push(promDb.runAsync("INSERT OR REPLACE INTO vms (host, status) VALUES (?, ?)", params))
+    }
+    Promise.all(promises).then(function() {
+        res.send(204, { status: 'ok' })
+    }).catch(function(e) {
+        res.send(400, { status: 'error', cause: e })
+    })
+})
+
 server.get('/vms/:host', function(req, res, next) {
     db.serialize(function() {
         var vm = {}
@@ -128,6 +145,11 @@ server.put('/vms', function(req, res, next) {
         }
         var host = payload['ansible_fqdn']
         var factsAsString = JSON.stringify(payload)
+
+        delete factsAsString.get_version
+        delete factsAsString.get_j_version
+        delete factsAsString.get_unity_version
+
         var systeminfoAsString = JSON.stringify(systeminfo)
         var updateStmt = db.prepare('UPDATE vms SET ansible_facts=(?), systeminfo=(?) WHERE host=(?)')
         updateStmt.run(factsAsString, systeminfoAsString, host, function(err) {
@@ -153,14 +175,24 @@ server.post({
         content: {
             contact: {
                 isRequired: true
+            },
+            requireExternal: {
+                isRequired: false
             }
         }
     }}, function(req, res, next) {
         db.serialize(function() {
-            promDb.getAsync("SELECT id, host FROM vms WHERE status == 'free'").then(function(vm) {
+            var payload = req.body
+            console.log(payload)
+            var query = "SELECT id, host FROM vms WHERE status == 'free'";
+            if (payload.requireExternal) {
+                console.log('Received request for external VM')
+                query += "AND substr(host, -7, 7) = 'systems'"
+            }
+            promDb.getAsync(query).then(function(vm) {
                 if (vm) {
                     console.log('Booking VM ' + vm.host + '.')
-                    var payload = req.body
+
                     var params = [
                         'in use',
                         payload.contact,
@@ -176,7 +208,7 @@ server.post({
                         })
                     })
                 } else {
-                    var msg = 'All VMs are booked!'
+                    var msg = 'All ' + (payload.requireExternal ? 'external' : '') + ' VMs are booked!'
                     console.error(msg)
                     res.send(423, { message: msg })
                 }

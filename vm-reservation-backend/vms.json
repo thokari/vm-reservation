@@ -1,51 +1,27 @@
-{
-    "vms": [{
+[
+    {
         "host": "teamred-05.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
         "host": "teamred-06.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
         "host": "teamred-07.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
         "host": "teamred-08.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
         "host": "teamred-09.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
         "host": "teamred-10.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
         "host": "teamred-11.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
+        "status": "free"
     }, {
-        "host": "teamred-12.vm-intern.epages.com",
-        "status": "free",
-        "description": "",
-        "contact": "",
-        "systeminfo": ""
-    }]
-}
+        "host": "epages.hamburg.systems",
+        "status": "free"
+    }
+]
