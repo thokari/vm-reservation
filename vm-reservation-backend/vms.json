@@ -21,7 +21,16 @@
         "host": "teamred-11.vm-intern.epages.com",
         "status": "free"
     }, {
-        "host": "epages.hamburg.systems",
+        "host": "barcelona.epages.systems",
+        "status": "free"
+    }, {
+        "host": "hamburg.epages.systems",
+        "status": "free"
+    }, {
+        "host": "ocean-test.epages.systems",
+        "status": "free"
+    }, {
+        "host": "ocean-unity.epages.systems",
         "status": "free"
     }
 ]
