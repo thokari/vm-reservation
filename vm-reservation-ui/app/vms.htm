@@ -3,7 +3,7 @@
         <img src="img/hal9000.jpg" style="height: 150px; width: 150px;"></img>
         <img src="img/vmtool_header_teamred.png"></img>
         <br />
-        <div ng-repeat="vm in vms" class="stock" style="width:700px;">
+        <div ng-repeat="vm in vms | orderBy: host" class="stock" style="width:700px;">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title"><a href="http://trident.vm-intern.epages.com/3rdPartyTools/LinkBuilder/linkBuilder.html?hostname={{vm.host}}">{{vm.host}}</a></h3>

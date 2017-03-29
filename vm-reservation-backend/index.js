@@ -56,7 +56,7 @@ function parseDatabaseRow(row) {
 server.get('/vms', function(req, res, next) {
     db.serialize(function() {
         var vms = []
-        db.each('SELECT * FROM vms', function(err, row) {
+        db.each('SELECT * FROM vms ORDER BY host', function(err, row) {
             if (err) {
                 console.log('Database error: ' + err)
                 res.status(500)
