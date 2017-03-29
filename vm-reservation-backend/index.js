@@ -183,10 +183,14 @@ server.post({
     }}, function(req, res, next) {
         db.serialize(function() {
             var payload = req.body
+            var requireExternalVm = payload.requireExternal == 'true'
             var findQuery = "SELECT id, host FROM vms WHERE status == 'free'";
-            if (payload.requireExternal == 'true') {
+            if (requireExternalVm) {
                 console.log('Received request for external VM')
                 findQuery += "AND substr(host, -7, 7) = 'systems'"
+            } else {
+                console.log('Received request for internal VM')
+                findQuery += "AND NOT substr(host, -7, 7) = 'systems'"
             }
             promDb.getAsync(findQuery).then(function(vm) {
                 if (vm) {
@@ -207,7 +211,7 @@ server.post({
                         })
                     })
                 } else {
-                    var msg = 'All ' + (payload.requireExternal ? 'external' : '') + ' VMs are booked!'
+                    var msg = 'All' + (requireExternalVm ? ' external ' : ' internal ') + 'VMs are booked!'
                     console.error(msg)
                     res.send(423, { message: msg })
                 }
