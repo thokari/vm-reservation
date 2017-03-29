@@ -41,14 +41,13 @@ app.controller('vmListController', function(config, $scope, $http, $modal) {
 
         $scope.vms = vms
 
-        $scope.edit = function(id) {
-            var vm = vms[id]
+        $scope.edit = function(vm) {
             var modalInstance = $modal.open({
                 animation: true,
                 templateUrl: 'edit.htm',
                 controller: 'editVMController',
                 resolve: {
-                    selectedVM: function() {
+                    selectedVm: function() {
                         return vm
                     }
                 }
@@ -58,17 +57,11 @@ app.controller('vmListController', function(config, $scope, $http, $modal) {
                 var currentDate = new Date()
                 vm.bookingtime = currentDate.toString()
                 prepareBookingDate(vm)
-                var vmToUpdate = $scope.vms[id]
-                vmToUpdate.host = vm.host
-                vmToUpdate.status = vm.status
-                vmToUpdate.description = vm.description
-                vmToUpdate.contact = vm.contact
-                vmToUpdate.systeminfo = vm.systeminfo
-                vmToUpdate.bookingDate = vm.bookingDate
-                vmToUpdate.bookingtime = vm.bookingtime
-                vmToUpdate.inUseForDays = vm.inUseForDays
-                vmToUpdate.ansible_facts = vm.ansible_facts
-                $http.put(config.endpoint + 'vms/' + id, vm).success(function() {
+                var vmToUpdate = $scope.vms.filter(function (anyVm) {
+                    return anyVm.id === vm.id
+                })[0]
+                Object.assign(vmToUpdate, vm)
+                $http.put(config.endpoint + 'vms/' + vm.id, vm).success(function() {
                     console.log('Updated VM info', vm)
                 })
             })
@@ -76,17 +69,10 @@ app.controller('vmListController', function(config, $scope, $http, $modal) {
     })
 })
 
-app.controller('editVMController', function($scope, $modalInstance, selectedVM, $cookies) {
+app.controller('editVMController', function($scope, $modalInstance, selectedVm, $cookies) {
 
-    $scope.vm = {
-        id: selectedVM.id,
-        host: selectedVM.host,
-        status: selectedVM.status,
-        description: selectedVM.description,
-        contact: selectedVM.contact || $cookies.get('defaultContact'),
-        systeminfo: selectedVM.systeminfo,
-        ansible_facts: selectedVM.ansible_facts
-    }
+    $scope.vm = angular.copy(selectedVm)
+    $scope.vm.contact = selectedVm.contact || $cookies.get('defaultContact')
 
     $scope.changeStatus = function() {
         if ($scope.vm.status == 'free') {
