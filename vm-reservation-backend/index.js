@@ -196,11 +196,12 @@ server.post({
                 console.log('Received request for internal VM')
                 findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
             }
+            findQuery += " ORDER BY host"
             console.log('Executing query', findQuery)
             promDb.getAsync(findQuery).then(function(foundVm) {
                 if (foundVm) {
                     console.log('Found VM', foundVm.host)
-                    var updateQuery = 'UPDATE vms SET status = ?, contact = ?, bookingtime = ? , description = ? WHERE host = ?'
+                    var updateQuery = 'UPDATE vms SET status=(?), contact=(?), bookingtime=(?) , description=(?) WHERE host=(?)'
                     var params = [
                         'in use',
                         payload.contact,
