@@ -41,7 +41,6 @@ function parseDatabaseRow(row) {
         console.log('Could not parse systeminfo from database: ' + e)
     }
     var result = {
-        id: row.id,
         host: row.host,
         status: row.status,
         description: row.description,
@@ -78,15 +77,24 @@ server.get('/vms', function(req, res, next) {
 server.post('/vms', function(req, res, next) {
     // TODO validation...
     var vms = req.body
-    console.log(vms)
     var promises = []
+    console.log('Attempting to update vms', vms)
     for (index in vms) {
         var params = [ vms[index].host, vms[index].status ]
-        console.log(params)
         promises.push(promDb.runAsync("INSERT OR REPLACE INTO vms (host, status) VALUES (?, ?)", params))
     }
     Promise.all(promises).then(function() {
-        res.send(204, { status: 'ok' })
+        res.send(204)
+    }).catch(function(e) {
+        res.send(400, { status: 'error', cause: e })
+    })
+})
+
+server.del('/vms/:host', function(req, res, next) {
+    console.log('Deleting vm', + req.params.host)
+    var query = 'DELETE FROM vms WHERE host = (?)'
+    promDb.runAsync(query, req.params.host).then(function() {
+        res.send(204)
     }).catch(function(e) {
         res.send(400, { status: 'error', cause: e })
     })
@@ -105,30 +113,27 @@ server.get('/vms/:host', function(req, res, next) {
     })
 })
 
-server.put('/vms/:id', function(req, res, next) {
-    var id = req.params.id
+server.put('/vms/:host', function(req, res, next) {
+    var hostParam = req.params.host
     var vm = req.body
 
-    var sid = vm.id
     var host = vm.host
     var status = vm.status
     var description = vm.description
     var contact = vm.contact
     var bookingtime = vm.bookingtime
 
-    if (sid != 'undefined' && sid == id) {
-        if (host != 'undefined' && status != 'undefined' && description != 'undefined' && contact != 'undefined') {
-            var updateStmt = db.prepare('UPDATE vms SET host=(?), status=(?), description=(?), contact=(?), bookingtime=(?) WHERE id=(?)')
-            updateStmt.run(host, status, description, contact, bookingtime, id, function(err) {
-                if (err != null) {
-                    console.log('Error when updating vm: ' + err)
-                    res.status(400)
-                } else {
-                    res.status(204)
-                }
-                res.end()
-            })
-        }
+    if (host != 'undefined' && status != 'undefined' && description != 'undefined' && contact != 'undefined') {
+        var updateStmt = db.prepare('UPDATE vms SET host=(?), status=(?), description=(?), contact=(?), bookingtime=(?) WHERE host=(?)')
+        updateStmt.run(host, status, description, contact, bookingtime, hostParam, function(err) {
+            if (err != null) {
+                console.log('Error when updating vm: ' + err)
+                res.status(400)
+            } else {
+                res.status(204)
+            }
+            res.end()
+        })
     } else {
         res.status(400)
         res.end()
@@ -184,7 +189,7 @@ server.post({
         db.serialize(function() {
             var payload = req.body
             var requireExternalVm = payload.requireExternal == 'true'
-            var findQuery = "SELECT id, host FROM vms WHERE status == 'free'";
+            var findQuery = "SELECT host FROM vms WHERE status == 'free'";
             if (requireExternalVm) {
                 console.log('Received request for external VM')
                 findQuery += "AND substr(host, -7, 7) = 'systems'"
@@ -201,11 +206,10 @@ server.post({
                         payload.contact,
                         new Date().toISOString(),
                         payload.description,
-                        vm.id
+                        payload.host
                     ]
-                    promDb.runAsync("UPDATE vms SET status=(?), contact=(?), bookingtime=(?), description=(?) WHERE id=(?)", params).then(function() {
+                    promDb.runAsync("UPDATE vms SET status=(?), contact=(?), bookingtime=(?), description=(?) WHERE host=(?)", params).then(function() {
                         res.send(201, {
-                            id: vm.id,
                             host: vm.host,
                             status: 'in use'
                         })

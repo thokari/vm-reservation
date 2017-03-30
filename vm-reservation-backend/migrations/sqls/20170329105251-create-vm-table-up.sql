@@ -1,6 +1,5 @@
 CREATE TABLE vms (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    host VARCHAR NOT NULL,
+    host VARCHAR NOT NULL PRIMARY KEY,
     status VARCHAR NOT NULL,
     description VARCHAR,
     contact VARCHAR,

@@ -32,5 +32,8 @@
     }, {
         "host": "ocean-unity.epages.systems",
         "status": "free"
+    }, {
+        "host": "bugs-bunny.epages.systems",
+        "status": "free"
     }
 ]

@@ -1,7 +1,7 @@
 var app = angular.module('vm-reservation', ['ngRoute', 'ngResource', 'ngCookies', 'ui.bootstrap'])
 
 app.constant('config', {
-    // endpoint: 'http://localhost:3000/'
+    //endpoint: 'http://localhost:3000/'
     endpoint: 'http://teamred-jenkins.vm-intern.epages.com:3000/'
 })
 
@@ -58,10 +58,10 @@ app.controller('vmListController', function(config, $scope, $http, $modal) {
                 vm.bookingtime = currentDate.toString()
                 prepareBookingDate(vm)
                 var vmToUpdate = $scope.vms.filter(function (anyVm) {
-                    return anyVm.id === vm.id
+                    return anyVm.host === vm.host
                 })[0]
                 Object.assign(vmToUpdate, vm)
-                $http.put(config.endpoint + 'vms/' + vm.id, vm).success(function() {
+                $http.put(config.endpoint + 'vms/' + vm.host, vm).success(function() {
                     console.log('Updated VM info', vm)
                 })
             })
