@@ -174,6 +174,7 @@ server.put('/vms', function(req, res, next) {
 
 var promDb = Promise.promisifyAll(db)
 
+// http POST :3000/vms/reservation contact=TEST requireExternal=false
 server.post({
     url: '/vms/reservation',
     validation: {
@@ -192,14 +193,15 @@ server.post({
             var findQuery = "SELECT host FROM vms WHERE status == 'free'";
             if (requireExternalVm) {
                 console.log('Received request for external VM')
-                findQuery += "AND substr(host, -7, 7) = 'systems'"
+                findQuery += " AND substr(host, -7, 7) = 'systems'"
             } else {
                 console.log('Received request for internal VM')
-                findQuery += "AND NOT substr(host, -7, 7) = 'systems'"
+                findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
             }
+            console.log('Executing query', findQuery)
             promDb.getAsync(findQuery).then(function(vm) {
                 if (vm) {
-                    console.log('Booking VM ' + vm.host + '.')
+                    console.log('Found VM', vm.host)
 
                     var params = [
                         'in use',
@@ -208,10 +210,14 @@ server.post({
                         payload.description,
                         payload.host
                     ]
-                    promDb.runAsync("UPDATE vms SET status=(?), contact=(?), bookingtime=(?), description=(?) WHERE host=(?)", params).then(function() {
+                    promDb.runAsync('UPDATE vms SET status=(?), contact=(?), bookingtime=(?), description=(?) WHERE host=(?)', params).then(function() {
                         res.send(201, {
                             host: vm.host,
                             status: 'in use'
+                        })
+                    }).catch(function (error) {
+                        res.send(500, {
+                            message: error
                         })
                     })
                 } else {
