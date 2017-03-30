@@ -34,7 +34,7 @@ function prepareBookingDate(vm) {
 
 app.controller('vmListController', function(config, $scope, $http, $modal) {
     $http.get(config.endpoint + 'vms').then(function(result) {
-        vms = result.data.vms
+        vms = result.data
         for (var i = 0; i < vms.length; i++) {
             prepareBookingDate(vms[i])
         }

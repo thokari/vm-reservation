@@ -57,19 +57,17 @@ server.get('/vms', function(req, res, next) {
         var vms = []
         db.each('SELECT * FROM vms ORDER BY host', function(err, row) {
             if (err) {
-                console.log('Database error: ' + err)
+                console.log('Database error', err)
                 res.status(500)
-                res.json({message: err})
+                res.json({ message: err })
             }
             vms.push(parseDatabaseRow(row))
         }, function(err, numRows) {
             if (err) {
                 res.status(500)
-                res.json({message: err})
+                res.json({ message: err })
             }
-            res.json({
-                vms: vms
-            })
+            res.json(vms)
         })
     })
 })
@@ -91,7 +89,7 @@ server.post('/vms', function(req, res, next) {
 })
 
 server.del('/vms/:host', function(req, res, next) {
-    console.log('Deleting vm', + req.params.host)
+    console.log('Deleting VM', req.params.host)
     var query = 'DELETE FROM vms WHERE host = (?)'
     promDb.runAsync(query, req.params.host).then(function() {
         res.send(204)
@@ -190,7 +188,7 @@ server.post({
         db.serialize(function() {
             var payload = req.body
             var requireExternalVm = payload.requireExternal == 'true'
-            var findQuery = "SELECT host FROM vms WHERE status == 'free'";
+            var findQuery = "SELECT host FROM vms WHERE status = 'free'";
             if (requireExternalVm) {
                 console.log('Received request for external VM')
                 findQuery += " AND substr(host, -7, 7) = 'systems'"
@@ -199,23 +197,26 @@ server.post({
                 findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
             }
             console.log('Executing query', findQuery)
-            promDb.getAsync(findQuery).then(function(vm) {
-                if (vm) {
-                    console.log('Found VM', vm.host)
-
+            promDb.getAsync(findQuery).then(function(foundVm) {
+                if (foundVm) {
+                    console.log('Found VM', foundVm.host)
+                    var updateQuery = 'UPDATE vms SET status = ?, contact = ?, bookingtime = ? , description = ? WHERE host = ?'
                     var params = [
                         'in use',
                         payload.contact,
                         new Date().toISOString(),
                         payload.description,
-                        payload.host
+                        foundVm.host
                     ]
-                    promDb.runAsync('UPDATE vms SET status=(?), contact=(?), bookingtime=(?), description=(?) WHERE host=(?)', params).then(function() {
+                    console.log('Params', params)
+                    promDb.runAsync(updateQuery, params).then(function() {
+                        console.log('Executed query')
                         res.send(201, {
-                            host: vm.host,
+                            host: foundVm.host,
                             status: 'in use'
                         })
                     }).catch(function (error) {
+                        console.log(error)
                         res.send(500, {
                             message: error
                         })
