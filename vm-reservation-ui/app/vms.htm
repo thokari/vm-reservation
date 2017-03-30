@@ -3,58 +3,60 @@
         <img src="img/hal9000.jpg" style="height: 150px; width: 150px;"></img>
         <img src="img/vmtool_header_teamred.png"></img>
         <br />
-        <div ng-repeat="vm in vms | orderBy: host" class="stock" style="width:700px;">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title"><a href="http://trident.vm-intern.epages.com/3rdPartyTools/LinkBuilder/linkBuilder.html?hostname={{vm.host}}">{{vm.host}}</a></h3>
-                </div>
-                <div class="panel-body">
-                    <table width="100%">
-                        <tr>
-                            <td align="left" width="100px">
-                                <span ng-if="vm.status=='free'" class="label label-success">{{vm.status}}</span>
-                                <span ng-if="vm.status=='in use'" class="label label-warning">{{vm.status}}</span>
-                                <span ng-if="vm.status=='out of order'" class="label label-danger">{{vm.status}}</span>
-                            </td>
-                            <td>
-                                <div ng-if="vm.contact!=''">Contact: {{vm.contact}}</div>
-                            </td>
-                            <td align="right">
-                                <button type="button" class="btn btn-default btn-sm" aria-label="Left Align" ng-click="edit(vm)">
+    </center>
+    <div class="container-fluid">
+        <div class="row">
+            <div ng-repeat="vm in vms | orderBy: host" class="col-lg-4 col-md-6 col-xs-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title"><a href="http://trident.vm-intern.epages.com/3rdPartyTools/LinkBuilder/linkBuilder.html?hostname={{vm.host}}">{{vm.host}}</a></h3>
+                    </div>
+                    <div class="panel-body">
+                        <table width="100%">
+                            <tr>
+                                <td align="left" width="100px">
+                                    <span ng-if="vm.status=='free'" class="label label-success">{{vm.status}}</span>
+                                    <span ng-if="vm.status=='in use'" class="label label-warning">{{vm.status}}</span>
+                                    <span ng-if="vm.status=='out of order'" class="label label-danger">{{vm.status}}</span>
+                                </td>
+                                <td>
+                                    <div ng-if="vm.contact!=''">Contact: {{vm.contact}}</div>
+                                </td>
+                                <td align="right">
+                                    <button type="button" class="btn btn-default btn-sm" aria-label="Left Align" ng-click="edit(vm)">
                                     <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
                                 </button>
-                            </td>
-                        </tr>
-                    </table>
-                    <hr />
-                    <table width="100%">
-                        <tr>
-                            <td valign="top" width="125px">Description:</td>
-                            <td valign="top">{{vm.description}}</td>
-                        </tr>
-                        <tr>
-                            <td valign="top">Booking Date:</td>
-                            <td>
-                                <div ng-if="vm.status!='free'">
-                                    {{vm.bookingDate | date:'dd-MM-yyyy'}} ({{vm.inUseForDays}} Days ago)
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td valign="top">Installation Info:</td>
-                            <td valign="top">ePages {{vm.systeminfo.epages_version}}, ePagesJ {{vm.systeminfo.epages_j_version}}, Unity {{vm.systeminfo.epages_unity_version}}</td>
-                        </tr>
-                        <tr>
-                            <td valign="top">Facts:</td>
-                            <td valign="top">
-                                {{vm.ansible_facts.ansible_distribution}} {{vm.ansible_facts.ansible_distribution_version}},
-                                {{vm.ansible_facts.ansible_memtotal_mb}} MB RAM,
-                                {{vm.ansible_facts.ansible_processor_vcpus}} CPUs
-                            </td>
-                        </tr>
-                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        <hr />
+                        <table width="100%">
+                            <tr>
+                                <td valign="top" width="125px">Description:</td>
+                                <td valign="top">{{vm.description}}</td>
+                            </tr>
+                            <tr>
+                                <td valign="top">Booking Date:</td>
+                                <td>
+                                    <div ng-if="vm.status!='free'">
+                                        {{vm.bookingDate | date:'dd-MM-yyyy'}} ({{vm.inUseForDays}} Days ago)
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td valign="top">Installation Info:</td>
+                                <td valign="top">ePages {{vm.systeminfo.epages_version}}, ePagesJ {{vm.systeminfo.epages_j_version}}, Unity {{vm.systeminfo.epages_unity_version}}</td>
+                            </tr>
+                            <tr>
+                                <td valign="top">Facts:</td>
+                                <td valign="top">
+                                    {{vm.ansible_facts.ansible_distribution}} {{vm.ansible_facts.ansible_distribution_version}}, {{vm.ansible_facts.ansible_memtotal_mb}} MB RAM, {{vm.ansible_facts.ansible_processor_vcpus}} CPUs
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </center>
+    </div>
 </div>
