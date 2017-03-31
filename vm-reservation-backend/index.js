@@ -138,7 +138,7 @@ server.put('/vms/:host', function(req, res, next) {
     }
 })
 
-server.put('/vms', function(req, res, next) {
+server.put('/vms/:host/facts', function(req, res, next) {
     var payload = req.body
     if (payload) {
         var systeminfo = {
@@ -146,7 +146,8 @@ server.put('/vms', function(req, res, next) {
             epages_j_version: payload['epages_j_version'],
             epages_unity_version: payload['epages_unity_version']
         }
-        var host = payload['ansible_fqdn']
+        var host = req.params.host
+        console.log('Received fact update for host ' + host + ', facts:', payload.ansible_distribution + ', ' + payload.ansible_memtotal_mb, 'RAM,', payload.ansible_processor_vcpus, 'CPUs')
         var factsAsString = JSON.stringify(payload)
 
         delete factsAsString.get_version
@@ -155,9 +156,10 @@ server.put('/vms', function(req, res, next) {
 
         var systeminfoAsString = JSON.stringify(systeminfo)
         var updateStmt = db.prepare('UPDATE vms SET ansible_facts=(?), systeminfo=(?) WHERE host=(?)')
+
         updateStmt.run(factsAsString, systeminfoAsString, host, function(err) {
             if (err != null) {
-                console.log('Error when updating vm: ' + err)
+                console.log('Error when updating vm:', err)
                 res.status(400)
             } else {
                 res.status(204)
