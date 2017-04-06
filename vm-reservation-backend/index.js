@@ -84,7 +84,7 @@ server.post('/vms', function(req, res, next) {
     Promise.all(promises).then(function() {
         res.send(204)
     }).catch(function(e) {
-        res.send(400, { status: 'error', cause: e })
+        res.send(400, { status: 'error', cause: e.message })
     })
 })
 
