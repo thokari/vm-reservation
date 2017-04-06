@@ -72,11 +72,12 @@ server.get('/vms', function(req, res, next) {
     })
 })
 
-server.post('/vms/:host', function(req, res, next) {
-    var host = req.params.host
-    var status
+server.post('/vms', function(req, res, next) {
+    var host, status
     try {
-        status = JSON.parse(req.body).status
+        var body = JSON.parse(req.body)
+        host = body.host
+        status = body.status
     } catch (e) {
         res.send(400, { status: 'error', cause: e.message })
     }
