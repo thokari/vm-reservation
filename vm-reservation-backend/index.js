@@ -72,20 +72,23 @@ server.get('/vms', function(req, res, next) {
     })
 })
 
-server.post('/vms', function(req, res, next) {
-    // TODO validation...
-    var vms = req.body
-    var promises = []
-    console.log('Attempting to update vms', vms)
-    for (index in vms) {
-        var params = [ vms[index].host, vms[index].status ]
-        promises.push(promDb.runAsync("INSERT OR REPLACE INTO vms (host, status) VALUES (?, ?)", params))
-    }
-    Promise.all(promises).then(function() {
-        res.send(204)
-    }).catch(function(e) {
+server.post('/vms/:host', function(req, res, next) {
+    var host = req.params.host
+    var status
+    try {
+        status = JSON.parse(req.body).status
+    } catch (e) {
         res.send(400, { status: 'error', cause: e.message })
-    })
+    }
+    console.log('Attempting to insert VM', host)
+    promDb.runAsync('INSERT INTO vms (host, status) VALUES (?, ?)', [ host, status ])
+        .then(function() {
+            console.log('Successfully added VM', host)
+            res.send(204)
+        }).catch(function(e) {
+            console.log('Error when adding VM', host, e)
+            res.send(400, { status: 'error', cause: e.message })
+        })
 })
 
 server.del('/vms/:host', function(req, res, next) {
