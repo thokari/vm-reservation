@@ -73,14 +73,8 @@ server.get('/vms', function(req, res, next) {
 })
 
 server.post('/vms', function(req, res, next) {
-    var host, status
-    try {
-        var body = JSON.parse(req.body)
-        host = body.host
-        status = body.status
-    } catch (e) {
-        res.send(400, { status: 'error', cause: e.message })
-    }
+    var host = req.body.host
+    var status = req.body.status
     console.log('Attempting to insert VM', host)
     promDb.runAsync('INSERT INTO vms (host, status) VALUES (?, ?)', [ host, status ])
         .then(function() {
