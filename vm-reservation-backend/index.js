@@ -12,6 +12,7 @@ server.use(restify.fullResponse())
 server.use(restify.bodyParser({
     mapParams: true
 }))
+
 server.use(restify.queryParser())
 server.use(restifyValidation.validationPlugin({
     errorsAsArray: true,
@@ -136,6 +137,7 @@ server.put('/vms/:host', function(req, res, next) {
     }
 })
 
+
 server.put('/vms/:host/facts', function(req, res, next) {
     var payload = req.body
     if (payload) {
@@ -232,26 +234,21 @@ server.post({
     }
 )
 
-server.del({
-    url: '/vms/:host/reservation',
-    validation: {
-        resources: {
-            host: { isRequired: true }
-        },
-    }}, function(req, res, next) {
-        promDb.runAsync("UPDATE vms SET status='free', contact='', bookingtime='', description='' WHERE host=(?)", req.params.host)
-            .then(function() {
-                res.send(200, {
-                    host: req.params.host,
-                    status: 'free'
-                })
-            }).catch(function(err) {
-                var msg = 'Error when releasing VM reservation for ' + req.params.host + ': ' + err
-                console.error(msg)
-                res.send(500, { message: msg })
+server.del('/vms/:host/reservation', function(req, res, next) {
+    var host = req.params.host
+    promDb.runAsync("UPDATE vms SET status='free', contact='', bookingtime='', description='' WHERE host=(?)", host)
+        .then(function() {
+            console.log('Freeing VM', host)
+            res.send(200, {
+                host: host,
+                status: 'free'
             })
-    }
-)
+        }).catch(function(err) {
+            var msg = 'Error when releasing VM reservation for ' + host + ': ' + err
+            console.error(msg)
+            res.send(500, { message: msg })
+        })
+})
 
 var port = 3000
 server.listen(port, function(err) {

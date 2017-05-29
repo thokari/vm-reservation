@@ -1,7 +1,7 @@
 var app = angular.module('vm-reservation', ['ngRoute', 'ngResource', 'ngCookies', 'ui.bootstrap'])
 
 app.constant('config', {
-    //endpoint: 'http://localhost:3000/'
+    // endpoint: 'http://localhost:3000/'
     endpoint: 'http://teamred-jenkins.vm-intern.epages.com:3000/'
 })
 
@@ -53,17 +53,27 @@ app.controller('vmListController', function(config, $scope, $http, $modal) {
                 }
             })
 
-            modalInstance.result.then(function(vm) {
-                var currentDate = new Date()
-                vm.bookingtime = currentDate.toString()
-                prepareBookingDate(vm)
-                var vmToUpdate = $scope.vms.filter(function (anyVm) {
-                    return anyVm.host === vm.host
+            modalInstance.result.then(function(editedVm) {
+                var vmToUpdate = $scope.vms.filter(function (vm) {
+                    return vm.host === editedVm.host
                 })[0]
-                Object.assign(vmToUpdate, vm)
-                $http.put(config.endpoint + 'vms/' + vm.host, vm).success(function() {
-                    console.log('Updated VM info', vm)
-                })
+                if (vmToUpdate.status !== 'free' && editedVm.status === 'free') {
+                    $http.delete(config.endpoint + 'vms/' + vm.host + '/reservation').success(function() {
+                        console.log('Freeing VM', vm)
+                    })
+                } else {
+                    var currentDate = new Date()
+                    editedVm.bookingtime = currentDate.toISOString()
+                    prepareBookingDate(editedVm)
+                    Object.assign(vmToUpdate, editedVm)
+                    $http.put(config.endpoint + 'vms/' + vm.host, vm).success(function() {
+                        console.log('Updated VM info', vm)
+                    })
+                }
+                var currentDate = new Date()
+                editedVm.bookingtime = currentDate.toISOString()
+                prepareBookingDate(editedVm)
+                Object.assign(vmToUpdate, editedVm)
             })
         }
     })
