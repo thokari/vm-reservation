@@ -104,8 +104,14 @@ server.get('/vms/:host', function(req, res, next) {
         var selectStmt = 'SELECT * FROM vms WHERE host = (?)'
         var params = [ queryHost ]
         db.get(selectStmt, params, function(err, row) {
-            vm = parseDatabaseRow(row)
-            res.json(vm)
+            if (err) {
+                res.send(400, { status: 'error', cause: err })
+            } else if (!row) {
+                res.send(404, { status: 'error', cause: 'not found' })
+            } else {
+                vm = parseDatabaseRow(row)
+                res.json(vm)
+            }
         })
     })
 })
