@@ -7,7 +7,16 @@ var restifyValidation = require('node-restify-validation')
 var file = 'vms.db'
 var db = new sqlite3.Database(file)
 
-var server = restify.createServer()
+var certFile = process.env.CERT_FILE
+var keyFile = process.env.KEY_FILE
+
+var options = {}
+if (certFile && keyFile) {
+    options.certificate = fs.readFileSync(certFile),
+        options.key = fs.readFileSync(keyFile),
+}
+
+var server = restify.createServer(options)
 server.use(restify.fullResponse())
 server.use(restify.bodyParser({
     mapParams: true
@@ -60,13 +69,17 @@ server.get('/vms', function(req, res, next) {
             if (err) {
                 console.log('Database error', err)
                 res.status(500)
-                res.json({ message: err })
+                res.json({
+                    message: err
+                })
             }
             vms.push(parseDatabaseRow(row))
         }, function(err, numRows) {
             if (err) {
                 res.status(500)
-                res.json({ message: err })
+                res.json({
+                    message: err
+                })
             }
             res.json(vms)
         })
@@ -77,13 +90,16 @@ server.post('/vms', function(req, res, next) {
     var host = req.body.host
     var status = req.body.status
     console.log('Attempting to insert VM', host)
-    promDb.runAsync('INSERT INTO vms (host, status) VALUES (?, ?)', [ host, status ])
+    promDb.runAsync('INSERT INTO vms (host, status) VALUES (?, ?)', [host, status])
         .then(function() {
             console.log('Successfully added VM', host)
             res.send(204)
         }).catch(function(e) {
             console.log('Error when adding VM', host, e)
-            res.send(400, { status: 'error', cause: e.message })
+            res.send(400, {
+                status: 'error',
+                cause: e.message
+            })
         })
 })
 
@@ -93,7 +109,10 @@ server.del('/vms/:host', function(req, res, next) {
     promDb.runAsync(query, req.params.host).then(function() {
         res.send(204)
     }).catch(function(e) {
-        res.send(400, { status: 'error', cause: e })
+        res.send(400, {
+            status: 'error',
+            cause: e
+        })
     })
 })
 
@@ -102,12 +121,18 @@ server.get('/vms/:host', function(req, res, next) {
         var vm = {}
         var queryHost = req.params.host
         var selectStmt = 'SELECT * FROM vms WHERE host = (?)'
-        var params = [ queryHost ]
+        var params = [queryHost]
         db.get(selectStmt, params, function(err, row) {
             if (err) {
-                res.send(400, { status: 'error', cause: err })
+                res.send(400, {
+                    status: 'error',
+                    cause: err
+                })
             } else if (!row) {
-                res.send(404, { status: 'error', cause: 'not found' })
+                res.send(404, {
+                    status: 'error',
+                    cause: 'not found'
+                })
             } else {
                 vm = parseDatabaseRow(row)
                 res.json(vm)
@@ -192,53 +217,55 @@ server.post({
                 isRequired: false
             }
         }
-    }}, function(req, res, next) {
-        db.serialize(function() {
-            var payload = req.body
-            var requireExternalVm = payload.requireExternal == 'true'
-            var findQuery = "SELECT host FROM vms WHERE status = 'free'";
-            if (requireExternalVm) {
-                console.log('Received request for external VM')
-                findQuery += " AND substr(host, -7, 7) = 'systems'"
-            } else {
-                console.log('Received request for internal VM')
-                findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
-            }
-            findQuery += " ORDER BY host"
-            console.log('Executing query', findQuery)
-            promDb.getAsync(findQuery).then(function(foundVm) {
-                if (foundVm) {
-                    console.log('Found VM', foundVm.host)
-                    var updateQuery = 'UPDATE vms SET status=(?), contact=(?), bookingtime=(?) , description=(?) WHERE host=(?)'
-                    var params = [
-                        'in use',
-                        payload.contact,
-                        new Date().toISOString(),
-                        payload.description,
-                        foundVm.host
-                    ]
-                    console.log('Params', params)
-                    promDb.runAsync(updateQuery, params).then(function() {
-                        console.log('Executed query')
-                        res.send(201, {
-                            host: foundVm.host,
-                            status: 'in use'
-                        })
-                    }).catch(function (error) {
-                        console.log(error)
-                        res.send(500, {
-                            message: error
-                        })
-                    })
-                } else {
-                    var msg = 'All' + (requireExternalVm ? ' external ' : ' internal ') + 'VMs are booked!'
-                    console.error(msg)
-                    res.send(423, { message: msg })
-                }
-            })
-        })
     }
-)
+}, function(req, res, next) {
+    db.serialize(function() {
+        var payload = req.body
+        var requireExternalVm = payload.requireExternal == 'true'
+        var findQuery = "SELECT host FROM vms WHERE status = 'free'";
+        if (requireExternalVm) {
+            console.log('Received request for external VM')
+            findQuery += " AND substr(host, -7, 7) = 'systems'"
+        } else {
+            console.log('Received request for internal VM')
+            findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
+        }
+        findQuery += " ORDER BY host"
+        console.log('Executing query', findQuery)
+        promDb.getAsync(findQuery).then(function(foundVm) {
+            if (foundVm) {
+                console.log('Found VM', foundVm.host)
+                var updateQuery = 'UPDATE vms SET status=(?), contact=(?), bookingtime=(?) , description=(?) WHERE host=(?)'
+                var params = [
+                    'in use',
+                    payload.contact,
+                    new Date().toISOString(),
+                    payload.description,
+                    foundVm.host
+                ]
+                console.log('Params', params)
+                promDb.runAsync(updateQuery, params).then(function() {
+                    console.log('Executed query')
+                    res.send(201, {
+                        host: foundVm.host,
+                        status: 'in use'
+                    })
+                }).catch(function(error) {
+                    console.log(error)
+                    res.send(500, {
+                        message: error
+                    })
+                })
+            } else {
+                var msg = 'All' + (requireExternalVm ? ' external ' : ' internal ') + 'VMs are booked!'
+                console.error(msg)
+                res.send(423, {
+                    message: msg
+                })
+            }
+        })
+    })
+})
 
 server.del('/vms/:host/reservation', function(req, res, next) {
     var host = req.params.host
@@ -252,7 +279,9 @@ server.del('/vms/:host/reservation', function(req, res, next) {
         }).catch(function(err) {
             var msg = 'Error when releasing VM reservation for ' + host + ': ' + err
             console.error(msg)
-            res.send(500, { message: msg })
+            res.send(500, {
+                message: msg
+            })
         })
 })
 
