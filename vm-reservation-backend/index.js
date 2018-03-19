@@ -12,8 +12,8 @@ var keyFile = process.env.KEY_FILE
 
 var options = {}
 if (certFile && keyFile) {
-    options.certificate = fs.readFileSync(certFile),
-        options.key = fs.readFileSync(keyFile),
+    options.certificate = fs.readFileSync(certFile)
+    options.key = fs.readFileSync(keyFile)
 }
 
 var server = restify.createServer(options)
