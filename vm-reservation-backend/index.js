@@ -10,283 +10,299 @@ var db = new sqlite3.Database(file)
 var certFile = process.env.CERT_FILE
 var keyFile = process.env.KEY_FILE
 
-var options = {}
+var tlsOptions = {}
 if (certFile && keyFile) {
-    options.certificate = fs.readFileSync(certFile)
-    options.key = fs.readFileSync(keyFile)
+    tlsOptions.certificate = fs.readFileSync(certFile)
+    tlsOptions.key = fs.readFileSync(keyFile)
 }
 
-var server = restify.createServer(options)
-server.use(restify.fullResponse())
-server.use(restify.bodyParser({
-    mapParams: true
-}))
+var https_server = restify.createServer(tlsOptions)
+var http_server = restify.createServer()
 
-server.use(restify.queryParser())
-server.use(restifyValidation.validationPlugin({
-    errorsAsArray: true,
-    forbidUndefinedVariables: false,
-    errorHandler: restify.errors.InvalidArgumentError
-}))
+var setupServer() = function(server) {
 
-server.use(
-    function crossOrigin(req, res, next) {
-        res.header('Access-Control-Allow-Origin', '*')
-        res.header('Access-Control-Allow-Headers', 'X-Requested-With')
-        return next()
+    server.use(restify.fullResponse())
+    server.use(restify.bodyParser({
+        mapParams: true
+    }))
+
+    server.use(restify.queryParser())
+    server.use(restifyValidation.validationPlugin({
+        errorsAsArray: true,
+        forbidUndefinedVariables: false,
+        errorHandler: restify.errors.InvalidArgumentError
+    }))
+
+    server.use(
+        function crossOrigin(req, res, next) {
+            res.header('Access-Control-Allow-Origin', '*')
+            res.header('Access-Control-Allow-Headers', 'X-Requested-With')
+            return next()
+        }
+    )
+
+    function parseDatabaseRow(row) {
+        var ansibleFacts
+        try {
+            ansibleFacts = JSON.parse(row.ansible_facts)
+        } catch (e) {
+            console.log('Could not parse ansible_facts from database: ' + e)
+        }
+        var systeminfo
+        try {
+            systeminfo = JSON.parse(row.systeminfo)
+        } catch (e) {
+            console.log('Could not parse systeminfo from database: ' + e)
+        }
+        var result = {
+            host: row.host,
+            status: row.status,
+            description: row.description,
+            contact: row.contact,
+            systeminfo: systeminfo,
+            bookingtime: row.bookingtime,
+            ansible_facts: ansibleFacts,
+        }
+        return result
     }
-)
 
-function parseDatabaseRow(row) {
-    var ansibleFacts
-    try {
-        ansibleFacts = JSON.parse(row.ansible_facts)
-    } catch (e) {
-        console.log('Could not parse ansible_facts from database: ' + e)
-    }
-    var systeminfo
-    try {
-        systeminfo = JSON.parse(row.systeminfo)
-    } catch (e) {
-        console.log('Could not parse systeminfo from database: ' + e)
-    }
-    var result = {
-        host: row.host,
-        status: row.status,
-        description: row.description,
-        contact: row.contact,
-        systeminfo: systeminfo,
-        bookingtime: row.bookingtime,
-        ansible_facts: ansibleFacts,
-    }
-    return result
-}
-
-server.get('/vms', function(req, res, next) {
-    db.serialize(function() {
-        var vms = []
-        db.each('SELECT * FROM vms ORDER BY host', function(err, row) {
-            if (err) {
-                console.log('Database error', err)
-                res.status(500)
-                res.json({
-                    message: err
-                })
-            }
-            vms.push(parseDatabaseRow(row))
-        }, function(err, numRows) {
-            if (err) {
-                res.status(500)
-                res.json({
-                    message: err
-                })
-            }
-            res.json(vms)
-        })
-    })
-})
-
-server.post('/vms', function(req, res, next) {
-    var host = req.body.host
-    var status = req.body.status
-    console.log('Attempting to insert VM', host)
-    promDb.runAsync('INSERT INTO vms (host, status) VALUES (?, ?)', [host, status])
-        .then(function() {
-            console.log('Successfully added VM', host)
-            res.send(204)
-        }).catch(function(e) {
-            console.log('Error when adding VM', host, e)
-            res.send(400, {
-                status: 'error',
-                cause: e.message
+    server.get('/vms', function(req, res, next) {
+        db.serialize(function() {
+            var vms = []
+            db.each('SELECT * FROM vms ORDER BY host', function(err, row) {
+                if (err) {
+                    console.log('Database error', err)
+                    res.status(500)
+                    res.json({
+                        message: err
+                    })
+                }
+                vms.push(parseDatabaseRow(row))
+            }, function(err, numRows) {
+                if (err) {
+                    res.status(500)
+                    res.json({
+                        message: err
+                    })
+                }
+                res.json(vms)
             })
         })
-})
-
-server.del('/vms/:host', function(req, res, next) {
-    console.log('Deleting VM', req.params.host)
-    var query = 'DELETE FROM vms WHERE host = (?)'
-    promDb.runAsync(query, req.params.host).then(function() {
-        res.send(204)
-    }).catch(function(e) {
-        res.send(400, {
-            status: 'error',
-            cause: e
-        })
     })
-})
 
-server.get('/vms/:host', function(req, res, next) {
-    db.serialize(function() {
-        var vm = {}
-        var queryHost = req.params.host
-        var selectStmt = 'SELECT * FROM vms WHERE host = (?)'
-        var params = [queryHost]
-        db.get(selectStmt, params, function(err, row) {
-            if (err) {
+    server.post('/vms', function(req, res, next) {
+        var host = req.body.host
+        var status = req.body.status
+        console.log('Attempting to insert VM', host)
+        promDb.runAsync('INSERT INTO vms (host, status) VALUES (?, ?)', [host, status])
+            .then(function() {
+                console.log('Successfully added VM', host)
+                res.send(204)
+            }).catch(function(e) {
+                console.log('Error when adding VM', host, e)
                 res.send(400, {
                     status: 'error',
-                    cause: err
+                    cause: e.message
                 })
-            } else if (!row) {
-                res.send(404, {
-                    status: 'error',
-                    cause: 'not found'
-                })
-            } else {
-                vm = parseDatabaseRow(row)
-                res.json(vm)
-            }
+            })
+    })
+
+    server.del('/vms/:host', function(req, res, next) {
+        console.log('Deleting VM', req.params.host)
+        var query = 'DELETE FROM vms WHERE host = (?)'
+        promDb.runAsync(query, req.params.host).then(function() {
+            res.send(204)
+        }).catch(function(e) {
+            res.send(400, {
+                status: 'error',
+                cause: e
+            })
         })
     })
-})
 
-server.put('/vms/:host', function(req, res, next) {
-    var hostParam = req.params.host
-    var vm = req.body
-
-    var host = vm.host
-    var status = vm.status
-    var description = vm.description
-    var contact = vm.contact
-    var bookingtime = vm.bookingtime
-
-    if (host != 'undefined' && status != 'undefined' && description != 'undefined' && contact != 'undefined') {
-        var updateStmt = db.prepare('UPDATE vms SET host=(?), status=(?), description=(?), contact=(?), bookingtime=(?) WHERE host=(?)')
-        updateStmt.run(host, status, description, contact, bookingtime, hostParam, function(err) {
-            if (err != null) {
-                console.log('Error when updating vm: ' + err)
-                res.status(400)
-            } else {
-                res.status(204)
-            }
-            res.end()
+    server.get('/vms/:host', function(req, res, next) {
+        db.serialize(function() {
+            var vm = {}
+            var queryHost = req.params.host
+            var selectStmt = 'SELECT * FROM vms WHERE host = (?)'
+            var params = [queryHost]
+            db.get(selectStmt, params, function(err, row) {
+                if (err) {
+                    res.send(400, {
+                        status: 'error',
+                        cause: err
+                    })
+                } else if (!row) {
+                    res.send(404, {
+                        status: 'error',
+                        cause: 'not found'
+                    })
+                } else {
+                    vm = parseDatabaseRow(row)
+                    res.json(vm)
+                }
+            })
         })
-    } else {
-        res.status(400)
-        res.end()
-    }
-})
+    })
 
+    server.put('/vms/:host', function(req, res, next) {
+        var hostParam = req.params.host
+        var vm = req.body
 
-server.put('/vms/:host/facts', function(req, res, next) {
-    var payload = req.body
-    if (payload) {
-        var systeminfo = {
-            epages_version: payload['epages_version'],
-            epages_j_version: payload['epages_j_version'],
-            epages_unity_version: payload['epages_unity_version']
-        }
-        var host = req.params.host
-        console.log('Received fact update for host ' + host + ', facts:', payload.ansible_distribution + ', ' + payload.ansible_memtotal_mb, 'RAM,', payload.ansible_processor_vcpus, 'CPUs')
-        var factsAsString = JSON.stringify(payload)
+        var host = vm.host
+        var status = vm.status
+        var description = vm.description
+        var contact = vm.contact
+        var bookingtime = vm.bookingtime
 
-        delete factsAsString.get_version
-        delete factsAsString.get_j_version
-        delete factsAsString.get_unity_version
-
-        var systeminfoAsString = JSON.stringify(systeminfo)
-        var updateStmt = db.prepare('UPDATE vms SET ansible_facts=(?), systeminfo=(?) WHERE host=(?)')
-
-        updateStmt.run(factsAsString, systeminfoAsString, host, function(err) {
-            if (err != null) {
-                console.log('Error when updating vm:', err)
-                res.status(400)
-            } else {
-                res.status(204)
-            }
-            res.end()
-        })
-    } else {
-        res.status(400)
-        res.end()
-    }
-})
-
-var promDb = Promise.promisifyAll(db)
-
-// http POST :3000/vms/reservation contact=TEST requireExternal=false
-server.post({
-    url: '/vms/reservation',
-    validation: {
-        content: {
-            contact: {
-                isRequired: true
-            },
-            requireExternal: {
-                isRequired: false
-            }
-        }
-    }
-}, function(req, res, next) {
-    db.serialize(function() {
-        var payload = req.body
-        var requireExternalVm = payload.requireExternal == 'true'
-        var findQuery = "SELECT host FROM vms WHERE status = 'free'";
-        if (requireExternalVm) {
-            console.log('Received request for external VM')
-            findQuery += " AND substr(host, -7, 7) = 'systems'"
+        if (host != 'undefined' && status != 'undefined' && description != 'undefined' && contact != 'undefined') {
+            var updateStmt = db.prepare('UPDATE vms SET host=(?), status=(?), description=(?), contact=(?), bookingtime=(?) WHERE host=(?)')
+            updateStmt.run(host, status, description, contact, bookingtime, hostParam, function(err) {
+                if (err != null) {
+                    console.log('Error when updating vm: ' + err)
+                    res.status(400)
+                } else {
+                    res.status(204)
+                }
+                res.end()
+            })
         } else {
-            console.log('Received request for internal VM')
-            findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
+            res.status(400)
+            res.end()
         }
-        findQuery += " ORDER BY host"
-        console.log('Executing query', findQuery)
-        promDb.getAsync(findQuery).then(function(foundVm) {
-            if (foundVm) {
-                console.log('Found VM', foundVm.host)
-                var updateQuery = 'UPDATE vms SET status=(?), contact=(?), bookingtime=(?) , description=(?) WHERE host=(?)'
-                var params = [
-                    'in use',
-                    payload.contact,
-                    new Date().toISOString(),
-                    payload.description,
-                    foundVm.host
-                ]
-                console.log('Params', params)
-                promDb.runAsync(updateQuery, params).then(function() {
-                    console.log('Executed query')
-                    res.send(201, {
-                        host: foundVm.host,
-                        status: 'in use'
-                    })
-                }).catch(function(error) {
-                    console.log(error)
-                    res.send(500, {
-                        message: error
-                    })
-                })
+    })
+
+
+    server.put('/vms/:host/facts', function(req, res, next) {
+        var payload = req.body
+        if (payload) {
+            var systeminfo = {
+                epages_version: payload['epages_version'],
+                epages_j_version: payload['epages_j_version'],
+                epages_unity_version: payload['epages_unity_version']
+            }
+            var host = req.params.host
+            console.log('Received fact update for host ' + host + ', facts:', payload.ansible_distribution + ', ' + payload.ansible_memtotal_mb, 'RAM,', payload.ansible_processor_vcpus, 'CPUs')
+            var factsAsString = JSON.stringify(payload)
+
+            delete factsAsString.get_version
+            delete factsAsString.get_j_version
+            delete factsAsString.get_unity_version
+
+            var systeminfoAsString = JSON.stringify(systeminfo)
+            var updateStmt = db.prepare('UPDATE vms SET ansible_facts=(?), systeminfo=(?) WHERE host=(?)')
+
+            updateStmt.run(factsAsString, systeminfoAsString, host, function(err) {
+                if (err != null) {
+                    console.log('Error when updating vm:', err)
+                    res.status(400)
+                } else {
+                    res.status(204)
+                }
+                res.end()
+            })
+        } else {
+            res.status(400)
+            res.end()
+        }
+    })
+
+    var promDb = Promise.promisifyAll(db)
+
+    // http POST :3000/vms/reservation contact=TEST requireExternal=false
+    server.post({
+        url: '/vms/reservation',
+        validation: {
+            content: {
+                contact: {
+                    isRequired: true
+                },
+                requireExternal: {
+                    isRequired: false
+                }
+            }
+        }
+    }, function(req, res, next) {
+        db.serialize(function() {
+            var payload = req.body
+            var requireExternalVm = payload.requireExternal == 'true'
+            var findQuery = "SELECT host FROM vms WHERE status = 'free'";
+            if (requireExternalVm) {
+                console.log('Received request for external VM')
+                findQuery += " AND substr(host, -7, 7) = 'systems'"
             } else {
-                var msg = 'All' + (requireExternalVm ? ' external ' : ' internal ') + 'VMs are booked!'
+                console.log('Received request for internal VM')
+                findQuery += " AND NOT substr(host, -7, 7) = 'systems'"
+            }
+            findQuery += " ORDER BY host"
+            console.log('Executing query', findQuery)
+            promDb.getAsync(findQuery).then(function(foundVm) {
+                if (foundVm) {
+                    console.log('Found VM', foundVm.host)
+                    var updateQuery = 'UPDATE vms SET status=(?), contact=(?), bookingtime=(?) , description=(?) WHERE host=(?)'
+                    var params = [
+                        'in use',
+                        payload.contact,
+                        new Date().toISOString(),
+                        payload.description,
+                        foundVm.host
+                    ]
+                    console.log('Params', params)
+                    promDb.runAsync(updateQuery, params).then(function() {
+                        console.log('Executed query')
+                        res.send(201, {
+                            host: foundVm.host,
+                            status: 'in use'
+                        })
+                    }).catch(function(error) {
+                        console.log(error)
+                        res.send(500, {
+                            message: error
+                        })
+                    })
+                } else {
+                    var msg = 'All' + (requireExternalVm ? ' external ' : ' internal ') + 'VMs are booked!'
+                    console.error(msg)
+                    res.send(423, {
+                        message: msg
+                    })
+                }
+            })
+        })
+    })
+
+    server.del('/vms/:host/reservation', function(req, res, next) {
+        var host = req.params.host
+        promDb.runAsync("UPDATE vms SET status='free', contact='', bookingtime='', description='' WHERE host=(?)", host)
+            .then(function() {
+                console.log('Freeing VM', host)
+                res.send(200, {
+                    host: host,
+                    status: 'free'
+                })
+            }).catch(function(err) {
+                var msg = 'Error when releasing VM reservation for ' + host + ': ' + err
                 console.error(msg)
-                res.send(423, {
+                res.send(500, {
                     message: msg
                 })
-            }
-        })
+            })
     })
+}
+
+setupServer(https_server)
+setupServer(http_server)
+
+https_server.listen(3443, function(err) {
+    if (err) {
+        console.error(err)
+        return 1
+    } else {
+        return 0
+    }
 })
 
-server.del('/vms/:host/reservation', function(req, res, next) {
-    var host = req.params.host
-    promDb.runAsync("UPDATE vms SET status='free', contact='', bookingtime='', description='' WHERE host=(?)", host)
-        .then(function() {
-            console.log('Freeing VM', host)
-            res.send(200, {
-                host: host,
-                status: 'free'
-            })
-        }).catch(function(err) {
-            var msg = 'Error when releasing VM reservation for ' + host + ': ' + err
-            console.error(msg)
-            res.send(500, {
-                message: msg
-            })
-        })
-})
-
-var port = 3000
-server.listen(port, function(err) {
+http_server.listen(3000, function(err) {
     if (err) {
         console.error(err)
         return 1
