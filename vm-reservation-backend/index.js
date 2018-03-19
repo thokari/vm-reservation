@@ -19,7 +19,7 @@ if (certFile && keyFile) {
 var https_server = restify.createServer(tlsOptions)
 var http_server = restify.createServer()
 
-var setupServer() = function(server) {
+var setupServer = function(server) {
 
     server.use(restify.fullResponse())
     server.use(restify.bodyParser({
