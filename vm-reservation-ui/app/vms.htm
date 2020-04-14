@@ -36,10 +36,10 @@
                                 <td valign="top">{{vm.description}}</td>
                             </tr>
                             <tr>
-                                <td valign="top">Booking Date:</td>
+                                <td valign="top">Booking time:</td>
                                 <td>
                                     <div ng-if="vm.status!='free'">
-                                        {{vm.bookingDate | date:'dd-MM-yyyy'}} ({{vm.inUseForDays}} Days ago)
+                                        {{vm.inUseForDays}}
                                     </div>
                                 </td>
                             </tr>

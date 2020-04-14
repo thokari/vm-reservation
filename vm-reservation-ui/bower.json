@@ -7,6 +7,7 @@
     "angular-cookies": "1.5.9",
     "bootstrap": "3.3.4",
     "jquery": "2.1.4",
-    "angular-bootstrap": "~0.13.0"
+    "angular-bootstrap": "~0.13.0",
+    "moment": "^2.24.0"
   }
 }

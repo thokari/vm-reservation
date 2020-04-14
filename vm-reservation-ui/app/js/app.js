@@ -12,23 +12,11 @@ app.config(function($routeProvider) {
     })
 })
 
-function getBookingAgeInDays(bookingDateInMs) {
-    var oneDayInMillisecounds = (24 * 60 * 60 * 1000)
-    var currentDate = new Date()
-    if (currentDate.getTime() <= bookingDateInMs) {
-        return 0
-    }
-    var inUseForDays = Math.round(Math.abs((currentDate.getTime() - bookingDateInMs) / oneDayInMillisecounds))
-    return inUseForDays
-}
-
 function prepareBookingDate(vm) {
     if ('free' == vm.status) {
-        vm.bookingDate = ''
         vm.inUseForDays = ''
     } else {
-        vm.bookingDate = Date.parse(vm.bookingtime)
-        vm.inUseForDays = getBookingAgeInDays(vm.bookingDate)
+        vm.inUseForDays = moment(vm.bookingtime).fromNow()
     }
 }
 
