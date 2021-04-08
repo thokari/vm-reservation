@@ -2,7 +2,7 @@ var app = angular.module('vm-reservation', ['ngRoute', 'ngResource', 'ngCookies'
 
 app.constant('config', {
     // endpoint: 'http://localhost:3000/'
-    endpoint: 'http://teamred-jenkins.vm-intern.epages.com:3000/'
+    endpoint: 'http://teaminfinity-tools.vm-intern.epages.com:3443/'
 })
 
 app.config(function($routeProvider) {
